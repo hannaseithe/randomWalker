@@ -176,6 +176,11 @@ function drawWalker() {
     }
     counter++;
     if (insideCanvas(newX, newY) /*&& noCrossLine(newX, newY)*/) {
+        if (counter % 150 == 2) {
+            ctx.fillStyle = "rgba(0,0,0,0.05)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
         rold = r;
         line.push([newX, newY]);
         ctx.lineTo(newX, newY);
