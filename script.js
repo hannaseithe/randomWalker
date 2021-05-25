@@ -3,14 +3,17 @@ let counter = 0;
 let canvas, ctx;
 let noiseFreq = 0.05;
 let p5;
-let rold = 0;
-let line = []
+let line = [];
+let moveCash = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 var init = {
-    frequency: 0.00005,
-    inc: 3,
+    frequency: 0.005,
+    inc: 10,
     lineWidth: 1,
-    opacity: 0.1
+    lineOpacity: 0.3,
+    fadeFrequency: 150,
+    randomRatio: 10,
+    pattern: "zipper"
 }
 
 function getRandomInt(max) {
@@ -88,6 +91,11 @@ function insideCanvas(x, y) {
 function setUpBindings() {
     var myInputElement1 = document.getElementById("frequencyInput");
     var myInputElement2 = document.getElementById("incInput")
+    var myInputElement3 = document.getElementById("fadeInput")
+    var myInputElement4 = document.getElementById("widthInput")
+    var myInputElement5 = document.getElementById("linOpInput")
+    var myInputElement6 = document.getElementById("ranInput")
+
 
 
     new Binding({
@@ -102,18 +110,53 @@ function setUpBindings() {
     })
         .addBinding(myInputElement2, "value", "keyup")
 
+    new Binding({
+        object: init,
+        property: "fadeFrequency"
+    })
+        .addBinding(myInputElement3, "value", "keyup")
+
+    new Binding({
+        object: init,
+        property: "lineWidth"
+    })
+        .addBinding(myInputElement4, "value", "keyup")
+
+    new Binding({
+        object: init,
+        property: "lineOpacity"
+    })
+        .addBinding(myInputElement5, "value", "keyup")
+
+    new Binding({
+        object: init,
+        property: "randomRatio"
+    })
+        .addBinding(myInputElement6, "value", "keyup")
+
+    var patternSelection = new Binding({
+        object: init,
+        property: "pattern"
+    })
+
+    var radios = document.getElementsByName("patternOptions");
+    for (i = 0; i < radios.length; i++) {
+        patternSelection.addRadioBinding(radios[i], "value", "change")
+    }
+
 }
 
 function initialize() {
     canvas = document.getElementById("canvas");
     if (canvas.getContext) {
         ctx = canvas.getContext("2d");
+        var rect = canvas.getBoundingClientRect();
         canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.height = window.innerHeight - rect.y;
         x_init = Math.floor(canvas.width / 2);
         y_init = Math.floor(canvas.height / 2);
         line.push([x_init, y_init]);
-        ctx.lineWidth = 1;
+        ctx.lineWidth = init.lineWidth;
         ctx.fillStyle = "black";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         //p5 = new window.p5();
@@ -124,6 +167,38 @@ function initialize() {
 
 }
 
+function pattern() {
+    var rold = moveCash[moveCash.length - 1];
+    switch (init.pattern) {
+        case "circle":
+            return ((rold + 7) % 8);
+        case "square":
+            return ((rold + 2) % 8);
+        case "zipper":
+            {
+                switch (counter % 3) {
+                    case 0:
+                    case 2:
+                        return ((rold + 2) % 8)
+                    case 1:
+                        return ((rold + 4) % 8)
+                }
+            }
+        case "cross":
+            {
+                switch (counter % 3) {
+                    case 0:
+                        return ((rold + 2) % 8);
+                    case 1:
+                    case 2:
+                        return ((rold + 6) % 8);
+                }
+            }
+
+
+    }
+}
+
 function drawWalker() {
     // while (counter < 500000) {
 
@@ -132,8 +207,11 @@ function drawWalker() {
     var newY = line[line.length - 1][1];
     ctx.moveTo(newX, newY);
 
-    var r = getRandomInt(100);
-    r = r > 7 ? /*(r > 15 ? (rold + 1) % 8 :*/ ((rold + 7) % 8) : r;
+
+    var prob = getRandomInt(100);
+
+    var r = getRandomInt(8);
+    r = prob > init.randomRatio ? pattern() : r;
 
     //var r = getNoiseInt(8);
     switch (r) {
@@ -141,31 +219,13 @@ function drawWalker() {
             newX += init.inc;
             break;
         }
-        case 2: {
-            newY += init.inc;
-            break;
-        }
-        case 4: {
-            newX += -init.inc;
-            break;
-        }
-        case 6: {
-            newY += -init.inc;
-            break
-        }
         case 1: {
             newX += init.inc;
             newY += init.inc;
             break;
         }
-        case 7: {
-            newX += init.inc;
-            newY += -init.inc;
-            break;
-        }
-        case 5: {
-            newX += -init.inc;
-            newY += -init.inc;
+        case 2: {
+            newY += init.inc;
             break;
         }
         case 3: {
@@ -173,21 +233,42 @@ function drawWalker() {
             newY += init.inc;
             break;
         }
+        case 4: {
+            newX += -init.inc;
+            break;
+        }
+        case 5: {
+            newX += -init.inc;
+            newY += -init.inc;
+            break;
+        }
+        case 6: {
+            newY += -init.inc;
+            break
+        }
+        case 7: {
+            newX += init.inc;
+            newY += -init.inc;
+            break;
+        }
+
+
     }
     counter++;
     if (insideCanvas(newX, newY) /*&& noCrossLine(newX, newY)*/) {
-        if (counter % 150 == 2) {
+        if (counter % init.fadeFrequency == 2) {
             ctx.fillStyle = "rgba(0,0,0,0.05)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-        
-        rold = r;
+        moveCash.push(r);
+        moveCash.shift();
         line.push([newX, newY]);
         ctx.lineTo(newX, newY);
+        ctx.lineWidth = init.lineWidth;
         var red = Math.sin(init.frequency * counter + 0) * 127 + 128;
         var green = Math.sin(init.frequency * counter + 2) * 127 + 128;
         var blue = Math.sin(init.frequency * counter + 4) * 127 + 128;
-        ctx.strokeStyle = "rgba(" + red + "," + green + "," + blue + ",0.5)"
+        ctx.strokeStyle = "rgba(" + red + "," + green + "," + blue + "," + init.lineOpacity + ")"
         ctx.stroke();
     }
 
