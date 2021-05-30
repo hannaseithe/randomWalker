@@ -8,12 +8,13 @@ let moveCash = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 var init = {
     frequency: 0.005,
-    inc: 10,
-    lineWidth: 1,
-    lineOpacity: 0.3,
-    fadeFrequency: 150,
+    inc: 50,
+    lineWidth: 100,
+    lineOpacity: 0.02,
+    fadeFrequency: 100,
     randomRatio: 10,
-    pattern: "zipper"
+    pattern: "square",
+    paused: false
 }
 
 function getRandomInt(max) {
@@ -146,6 +147,15 @@ function setUpBindings() {
 
 }
 
+function takeScreenshot() {
+    var image = new Image();
+    var data = canvas.toDataURL();
+    image.src = data;
+
+    var w = window.open("");
+    w.document.write(image.outerHTML);
+}
+
 function initialize() {
     canvas = document.getElementById("canvas");
     if (canvas.getContext) {
@@ -165,6 +175,12 @@ function initialize() {
         drawWalker();
     }
 
+}
+
+function toggleAnimation(element) {
+    init.paused = !init.paused;
+    element.innerHTML = init.paused ? "Continue" : "Pause";
+    if (!init.paused) { window.requestAnimationFrame(drawWalker);}
 }
 
 function pattern() {
@@ -200,7 +216,7 @@ function pattern() {
 }
 
 function drawWalker() {
-    // while (counter < 500000) {
+    if (init.paused) { return};
 
     ctx.beginPath();
     var newX = line[line.length - 1][0];
